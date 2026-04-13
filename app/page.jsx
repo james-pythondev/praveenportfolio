@@ -4,6 +4,26 @@ import { useState, useEffect, useMemo } from "react";
 import { galleryData } from "./galleryData";
 import { heroPool } from "./heroPool";
 
+// Native SVG Icons to avoid bundle bloat
+const Instagram = ({ size = 24 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+  </svg>
+);
+const MessageCircle = ({ size = 24 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path>
+  </svg>
+);
+const Phone = ({ size = 24 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+  </svg>
+);
+
+
 // Dynamically generate categories from galleryData
 const categoryLabels = {
   "Wedding": "Wedding Stories",
@@ -144,7 +164,17 @@ export default function Portfolio() {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
         .gallery-grid { columns: 3; column-gap: 24px; padding: 0 2rem; max-width: 1400px; margin: 0 auto; }
-        @media (max-width: 1000px) { .gallery-grid { columns: 2; } }
+        
+        .hero-split { height: 100vh; width: 100%; display: flex; flex-direction: row; background-color: #fafaf8; }
+        .hero-bio { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 4rem; z-index: 2; }
+        .hero-image { flex: 1; position: relative; }
+        
+        @media (max-width: 1000px) { 
+          .gallery-grid { columns: 2; } 
+          .hero-split { flex-direction: column; height: auto; min-height: 100vh; }
+          .hero-bio { padding: 8rem 2rem 4rem; order: 2; }
+          .hero-image { order: 1; height: 60vh; }
+        }
         @media (max-width: 600px) { .gallery-grid { columns: 1; } }
       `}</style>
 
@@ -163,84 +193,118 @@ export default function Portfolio() {
         backdropFilter: scrolled || currentView !== "home" ? "blur(10px)" : "none",
         borderBottom: scrolled || currentView !== "home" ? "0.5px solid #eaeae5" : "none",
         transition: "all 0.5s ease",
-        color: !scrolled && currentView === "home" ? "#fff" : "#1a1a18"
+        color: "#1a1a18" // changed to always dark since left side is white now
       }}>
         <div style={{ cursor: "pointer" }} onClick={() => setCurrentView("home")}>
-          <span style={{ fontFamily: "'EB Garamond', serif", fontSize: "22px", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+          <span style={{ fontFamily: "'EB Garamond', serif", fontSize: "28px", letterSpacing: "0.15em", textTransform: "uppercase" }}>
             PRAVEEN
           </span>
         </div>
-        <div style={{ display: "flex", gap: "2rem" }}>
-          <button onClick={() => setCurrentView("home")} style={{ 
+        <div style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
+          <button onClick={() => {
+            if (currentView === "home") {
+              const el = document.getElementById('collections');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              setCurrentView("home");
+              setTimeout(() => {
+                const el = document.getElementById('collections');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }, 100);
+            }
+          }} style={{ 
             background: "none", border: "none", cursor: "pointer", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.1em",
-            color: "inherit", fontWeight: 400
+            color: "inherit", fontWeight: 500
           }}>Collections</button>
+          
+          <div style={{ display: "flex", gap: "1.2rem", alignItems: "center", marginLeft: "1rem" }}>
+            <a href="https://www.instagram.com/hypothetical__soul?igsh=eWk2anNmM3o2ZXpx" target="_blank" rel="noopener noreferrer" style={{ color: "inherit", opacity: 1, transition: "opacity 0.2s ease" }} onMouseEnter={(e) => e.currentTarget.style.opacity = 0.6} onMouseLeave={(e) => e.currentTarget.style.opacity = 1}>
+              <Instagram size={20} strokeWidth={1.8} />
+            </a>
+            <a href="https://wa.me/916379192449" target="_blank" rel="noopener noreferrer" style={{ color: "inherit", opacity: 1, transition: "opacity 0.2s ease" }} onMouseEnter={(e) => e.currentTarget.style.opacity = 0.6} onMouseLeave={(e) => e.currentTarget.style.opacity = 1}>
+              <MessageCircle size={20} strokeWidth={1.8} />
+            </a>
+            <a href="tel:+916379192449" style={{ color: "inherit", opacity: 1, transition: "opacity 0.2s ease" }} onMouseEnter={(e) => e.currentTarget.style.opacity = 0.6} onMouseLeave={(e) => e.currentTarget.style.opacity = 1}>
+              <Phone size={20} strokeWidth={1.8} />
+            </a>
+          </div>
         </div>
       </nav>
 
       {currentView === "home" ? (
         <>
-          {/* HERO CAROUSEL */}
-          <header style={{
-            height: "100vh",
-            width: "100%",
-            position: "relative",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            overflow: "hidden",
-            backgroundColor: "#1a1a18"
-          }}>
-            {heroImages.map((src, idx) => (
+          {/* HERO SPLIT-SCREEN */}
+          <header className="hero-split">
+            
+            {/* LEFT SIDE: BIO */}
+            <div className="hero-bio">
+              <p style={{ letterSpacing: "0.25em", fontSize: "12px", textTransform: "uppercase", marginBottom: "1.5rem", color: "#888" }}>
+                Visual Storyteller · Fine Art Photography
+              </p>
+              <h1 style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(42px, 6vw, 72px)", fontWeight: 400, lineHeight: 1.1, marginBottom: "1.5rem", color: "#1a1a18" }}>
+                Capturing the <br /><i>Timeless Grace</i>
+              </h1>
+              <p style={{ color: "#666", fontSize: "15px", lineHeight: 1.7, marginBottom: "2.5rem", maxWidth: "500px" }}>
+                Praveen is a fine art photographer specializing in creating elegant, cinematic imagery. By blending natural light with quiet, candid moments, he crafts visual heirlooms that authentically preserve your most profound milestones.
+              </p>
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                <button 
+                  onClick={() => document.getElementById('collections').scrollIntoView({ behavior: 'smooth' })}
+                  style={{
+                    background: "#1a1a18",
+                    border: "1px solid #1a1a18",
+                    color: "#fff",
+                    padding: "1rem 2.5rem",
+                    fontSize: "12px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.15em",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease"
+                  }}
+                >
+                  Explore Albums
+                </button>
+                <a 
+                  href="https://wa.me/916379192449?text=Hi Praveen, I'm interested in booking a photoshoot."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: "transparent",
+                    border: "1px solid #1a1a18",
+                    color: "#1a1a18",
+                    padding: "0.9rem 2.5rem",
+                    fontSize: "12px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.15em",
+                    cursor: "pointer",
+                    textDecoration: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    transition: "all 0.3s ease"
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#1a1a18"; e.currentTarget.style.color = "#fff"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#1a1a18"; }}
+                >
+                  Get in Touch
+                </a>
+              </div>
+            </div>
+
+            {/* RIGHT SIDE: STATIC IMAGE */}
+            <div className="hero-image">
               <img
-                key={src}
-                src={src}
-                alt={`Hero ${idx}`}
+                src={heroPool[0] || "/Wedding/DSC07029.webp"} // Temporary placeholder until client provides the image
+                alt="Praveen Photography"
                 style={{
                   position: "absolute",
                   inset: 0,
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
-                  transition: "opacity 1.5s ease-in-out, transform 10s linear",
-                  opacity: heroIndex === idx ? 1 : 0,
-                  transform: heroIndex === idx ? "scale(1.08)" : "scale(1)",
-                  zIndex: 1
                 }}
               />
-            ))}
-            {/* Safety Overlay - always behind text */}
-            <div style={{
-              position: "absolute",
-              inset: 0,
-              background: "rgba(0,0,0,0.45)",
-              zIndex: 2
-            }} />
-            
-            <div style={{ textAlign: "center", color: "#fff", maxWidth: "800px", padding: "0 2rem", zIndex: 3 }}>
-              <p style={{ letterSpacing: "0.25em", fontSize: "12px", textTransform: "uppercase", marginBottom: "1.5rem", opacity: 0.9 }}>
-                Visual Storyteller · Fine Art Photography
-              </p>
-              <h1 style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(48px, 8vw, 96px)", fontWeight: 400, lineHeight: 1.1, marginBottom: "2rem" }}>
-                Capturing the <br /><i>Timeless Grace</i>
-              </h1>
-              <button 
-                onClick={() => document.getElementById('collections').scrollIntoView({ behavior: 'smooth' })}
-                style={{
-                  background: "none",
-                  border: "1px solid rgba(255,255,255,0.4)",
-                  color: "#fff",
-                  padding: "1rem 2.5rem",
-                  fontSize: "12px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.15em",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease"
-                }}
-              >
-                Explore Albums
-              </button>
             </div>
+            
           </header>
 
           {/* COLLECTIONS GRID */}
@@ -349,23 +413,26 @@ export default function Portfolio() {
             href="https://www.instagram.com/hypothetical__soul?igsh=eWk2anNmM3o2ZXpx" 
             target="_blank" 
             rel="noopener noreferrer"
-            style={{ textDecoration: "none", color: "#444", fontSize: "14px", textTransform: "uppercase", letterSpacing: "0.15em", fontWeight: 500 }}
+            style={{ color: "#444", transition: "color 0.2s ease" }}
+            aria-label="Instagram"
           >
-            Instagram
+            <Instagram size={28} strokeWidth={1.5} />
           </a>
           <a 
             href="https://wa.me/916379192449" 
             target="_blank"
             rel="noopener noreferrer"
-            style={{ textDecoration: "none", color: "#444", fontSize: "14px", textTransform: "uppercase", letterSpacing: "0.15em", fontWeight: 500 }}
+            style={{ color: "#444", transition: "color 0.2s ease" }}
+            aria-label="WhatsApp"
           >
-            WhatsApp
+            <MessageCircle size={28} strokeWidth={1.5} />
           </a>
           <a 
             href="tel:+916379192449" 
-            style={{ textDecoration: "none", color: "#444", fontSize: "14px", textTransform: "uppercase", letterSpacing: "0.15em", fontWeight: 500 }}
+            style={{ color: "#444", transition: "color 0.2s ease" }}
+            aria-label="Call"
           >
-            Call
+            <Phone size={28} strokeWidth={1.5} />
           </a>
         </div>
         
