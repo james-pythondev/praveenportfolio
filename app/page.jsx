@@ -169,17 +169,42 @@ export default function Portfolio() {
         .hero-bio { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 4rem; z-index: 2; }
         .hero-image { flex: 1; position: relative; }
         
+        .footer-links { display: flex; gap: 3rem; margin-top: 1rem; }
+        .section-padding { padding: 6rem 3rem; }
+        .footer-container { padding: 5rem 3rem; }
+        
         @media (max-width: 1000px) { 
-          .gallery-grid { columns: 2; } 
-          .hero-split { flex-direction: column; height: auto; min-height: 100vh; }
-          .hero-bio { padding: 8rem 2rem 4rem; order: 2; }
-          .hero-image { order: 1; height: 60vh; }
+          .gallery-grid { columns: 2; padding: 0 1.5rem; } 
+          .hero-split { flex-direction: column; height: auto; min-height: 100vh; padding-top: 80px; }
+          .hero-bio { padding: 4rem 2rem 4rem; order: 2; align-items: center; text-align: center; }
+          .hero-image { order: 1; height: auto; display: flex; }
+          .nav-container { padding: 1.2rem 2rem !important; }
+          .nav-logo { font-size: 24px !important; }
         }
-        @media (max-width: 600px) { .gallery-grid { columns: 1; } }
+        @media (max-width: 600px) { 
+          .gallery-grid { columns: 1; padding: 0 1rem; } 
+          .hero-bio { padding: 3rem 1.5rem 3rem; order: 2; }
+          .hero-bio p { font-size: 14px !important; }
+          .hero-image { height: auto; order: 1; margin-bottom: 1rem; }
+          .nav-container { padding: 1rem 1.2rem !important; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+          .nav-logo { font-size: 20px !important; }
+          .nav-links { gap: 1rem !important; }
+          .nav-icons { gap: 0.8rem !important; margin-left: 0.5rem !important; }
+          .nav-icons svg { width: 16px; height: 16px; }
+          .footer-links { gap: 2rem !important; flex-wrap: wrap; justify-content: center; }
+          .section-padding { padding: 4rem 1.5rem !important; }
+          .footer-container { padding: 4rem 1.5rem !important; }
+          .section-title { font-size: 32px !important; }
+          .album-title { font-size: 32px !important; }
+          .album-header { flex-direction: column !important; align-items: flex-start !important; gap: 1.5rem !important; }
+          
+          /* Hero image full-size override for mobile */
+          .hero-img-element { position: relative !important; height: auto !important; object-fit: contain !important; }
+        }
       `}</style>
 
       {/* FIXED NAV */}
-      <nav style={{
+      <nav className="nav-container" style={{
         position: "fixed",
         top: 0,
         left: 0,
@@ -195,12 +220,12 @@ export default function Portfolio() {
         transition: "all 0.5s ease",
         color: "#1a1a18" // changed to always dark since left side is white now
       }}>
-        <div style={{ cursor: "pointer" }} onClick={() => setCurrentView("home")}>
-          <span style={{ fontFamily: "'EB Garamond', serif", fontSize: "28px", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+        <div style={{ cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => setCurrentView("home")}>
+          <span className="nav-logo" style={{ fontFamily: "'EB Garamond', serif", fontSize: "28px", letterSpacing: "0.15em", textTransform: "uppercase" }}>
             PRAVEEN
           </span>
         </div>
-        <div style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
+        <div className="nav-links" style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
           <button onClick={() => {
             if (currentView === "home") {
               const el = document.getElementById('collections');
@@ -217,7 +242,7 @@ export default function Portfolio() {
             color: "inherit", fontWeight: 500
           }}>Collections</button>
           
-          <div style={{ display: "flex", gap: "1.2rem", alignItems: "center", marginLeft: "1rem" }}>
+          <div className="nav-icons" style={{ display: "flex", gap: "1.2rem", alignItems: "center", marginLeft: "1rem" }}>
             <a href="https://www.instagram.com/hypothetical__soul?igsh=eWk2anNmM3o2ZXpx" target="_blank" rel="noopener noreferrer" style={{ color: "inherit", opacity: 1, transition: "opacity 0.2s ease" }} onMouseEnter={(e) => e.currentTarget.style.opacity = 0.6} onMouseLeave={(e) => e.currentTarget.style.opacity = 1}>
               <Instagram size={20} strokeWidth={1.8} />
             </a>
@@ -247,7 +272,7 @@ export default function Portfolio() {
               <p style={{ color: "#666", fontSize: "15px", lineHeight: 1.7, marginBottom: "2.5rem", maxWidth: "500px" }}>
                 Praveen is a fine art photographer specializing in creating elegant, cinematic imagery. By blending natural light with quiet, candid moments, he crafts visual heirlooms that authentically preserve your most profound milestones.
               </p>
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "inherit" }}>
                 <button 
                   onClick={() => document.getElementById('collections').scrollIntoView({ behavior: 'smooth' })}
                   style={{
@@ -293,6 +318,7 @@ export default function Portfolio() {
             {/* RIGHT SIDE: STATIC IMAGE */}
             <div className="hero-image">
               <img
+                className="hero-img-element"
                 src={heroPool[0] || "/Wedding/DSC07029.webp"} // Temporary placeholder until client provides the image
                 alt="Praveen Photography"
                 style={{
@@ -308,9 +334,9 @@ export default function Portfolio() {
           </header>
 
           {/* COLLECTIONS GRID */}
-          <section id="collections" style={{ padding: "6rem 3rem", backgroundColor: "#fafaf8" }}>
+          <section id="collections" className="section-padding" style={{ backgroundColor: "#fafaf8" }}>
             <div style={{ textAlign: "center", marginBottom: "4rem" }}>
-              <h2 style={{ fontFamily: "'EB Garamond', serif", fontSize: "42px", fontWeight: 400, marginBottom: "1rem" }}>
+              <h2 className="section-title" style={{ fontFamily: "'EB Garamond', serif", fontSize: "42px", fontWeight: 400, marginBottom: "1rem" }}>
                 The Collections
               </h2>
               <div style={{ width: "40px", height: "1px", background: "#ccc", margin: "0 auto" }}></div>
@@ -340,9 +366,9 @@ export default function Portfolio() {
             >
               ← Back to All albums
             </button>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "2rem" }}>
+            <div className="album-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "2rem" }}>
               <div>
-                <h1 style={{ fontFamily: "'EB Garamond', serif", fontSize: "48px", fontWeight: 400 }}>
+                <h1 className="album-title" style={{ fontFamily: "'EB Garamond', serif", fontSize: "48px", fontWeight: 400 }}>
                   {categoryLabels[currentView] || currentView}
                 </h1>
                 <p style={{ color: "#888", fontSize: "14px", marginTop: "0.5rem" }}>
@@ -383,8 +409,7 @@ export default function Portfolio() {
       )}
 
       {/* FOOTER */}
-      <footer style={{
-        padding: "5rem 3rem",
+      <footer className="footer-container" style={{
         borderTop: "1px solid #eaeae5",
         display: "flex",
         flexDirection: "column",
@@ -408,7 +433,7 @@ export default function Portfolio() {
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "3rem", marginTop: "1rem" }}>
+        <div className="footer-links" style={{ display: "flex", gap: "3rem", marginTop: "1rem" }}>
           <a 
             href="https://www.instagram.com/hypothetical__soul?igsh=eWk2anNmM3o2ZXpx" 
             target="_blank" 
