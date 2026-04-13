@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { galleryData } from "./galleryData";
-import { heroPool } from "./heroPool";
 
 // Native SVG Icons to avoid bundle bloat
 const Instagram = ({ size = 24 }) => (

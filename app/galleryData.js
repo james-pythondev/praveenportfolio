@@ -149,9 +149,6 @@ export const galleryData = {
                        "DSC06939.webp",
                        "ithsh.webp"
                    ],
-    "Outdoor":  {
-
-                },
     "jpeg":  [
                  "02.webp",
                  "03.webp",
