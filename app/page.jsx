@@ -319,7 +319,7 @@ export default function Portfolio() {
             <div className="hero-image">
               <img
                 className="hero-img-element"
-                src={heroPool[0] || "/Wedding/DSC07029.webp"} // Temporary placeholder until client provides the image
+                src="/hero1.png"
                 alt="Praveen Photography"
                 style={{
                   position: "absolute",
