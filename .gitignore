@@ -45,6 +45,7 @@ public/**/*.jpeg
 public/**/*.png
 !public/hero1.png
 !public/abc.jpeg
+!public/head-shots/vimal.png
 public/**/*.psd
 public/**/*.PSD
 

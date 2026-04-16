@@ -25,23 +25,41 @@ const Phone = ({ size = 24 }) => (
 
 // Dynamically generate categories from galleryData
 const categoryLabels = {
-  "Wedding": "Wedding Stories",
-  "Bride": "Brides",
-  "Engagement": "Engagements",
-  "Groom": "Grooms",
-  "Maternity": "Maternity Glow",
+  "Wedding": "Weddings",
+  "Bride": "Bride",
+  "Engagement": "Engagement",
+  "Groom": "Groom",
+  "Maternity": "Maternity",
   "baby-shoot": "Tiny Footprints",
-  "head-shots": "Modern Portraits",
-  "jpeg": "Street Chronicles",
-  "Outdoor": "Outdoor Series"
+  "head-shots": "Headshots",
+  "jpeg": "Outdoor shoots",
 };
 
-const categories = Object.keys(galleryData)
+// Define specific order for the collections
+const collectionOrder = [
+  "head-shots",
+  "Groom",
+  "Bride",
+  "Engagement",
+  "Wedding",
+  "Maternity",
+  "baby-shoot",
+  "jpeg"
+];
+
+// Specific cover images as requested
+const customCovers = {
+  "head-shots": "/head-shots/vimal.png",
+  "Maternity": "/Maternity/R3K00089.webp", 
+  "jpeg": "/jpeg/02.webp"
+};
+
+const categories = collectionOrder
   .filter(key => Array.isArray(galleryData[key]) && galleryData[key].length > 0)
   .map(key => ({
     id: key,
     label: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1).replace(/-/g, ' '),
-    cover: `/${key}/${galleryData[key][0]}`
+    cover: customCovers[key] || `/${key}/${galleryData[key][0]}`
   }));
 
 function FullImage({ src, alt, style = {} }) {
