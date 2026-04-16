@@ -318,7 +318,7 @@ export default function Portfolio() {
             <div className="hero-image">
               <img
                 className="hero-img-element"
-                src="/hero1.png"
+                src="/abc.jpeg"
                 alt="Praveen Photography"
                 style={{
                   position: "absolute",

@@ -26,7 +26,7 @@ export const metadata = {
     type: "website",
     images: [
       {
-        url: "/hero1.png",
+        url: "/abc.jpeg",
         width: 1200,
         height: 630,
         alt: "Praveen Photography Portfolio",
@@ -38,7 +38,7 @@ export const metadata = {
     title: "Praveen Photography | Fine Art Photographer",
     description:
       "Timeless weddings, emotive maternity portraits, and cinematic portraiture by Praveen.",
-    images: ["/hero1.png"],
+    images: ["/abc.jpeg"],
   },
   robots: {
     index: true,
