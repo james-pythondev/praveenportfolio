@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { galleryData } from "./galleryData";
 
 // Native SVG Icons to avoid bundle bloat
@@ -126,23 +126,7 @@ function AlbumCard({ cat, onClick }) {
 export default function Portfolio() {
   const [currentView, setCurrentView] = useState("home");
   const [scrolled, setScrolled] = useState(false);
-  const [heroIndex, setHeroIndex] = useState(0);
 
-  // Use only Landscape images for the hero carousel
-  const heroImages = useMemo(() => {
-    // Shuffle the landscape pool and pick 12 for variety
-    return [...heroPool].sort(() => 0.5 - Math.random()).slice(0, 12);
-  }, []);
-
-  // Auto-advance hero carousel
-  useEffect(() => {
-    if (currentView === "home") {
-      const interval = setInterval(() => {
-        setHeroIndex((prev) => (prev + 1) % heroImages.length);
-      }, 6000);
-      return () => clearInterval(interval);
-    }
-  }, [currentView, heroImages.length]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
