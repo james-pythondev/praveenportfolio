@@ -44,6 +44,7 @@ public/**/*.JPG
 public/**/*.jpeg
 public/**/*.png
 !public/hero1.png
+!public/abc.jpeg
 public/**/*.psd
 public/**/*.PSD
 
