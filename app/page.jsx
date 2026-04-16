@@ -49,7 +49,7 @@ const collectionOrder = [
 
 // Specific cover images as requested
 const customCovers = {
-  "head-shots": "/head-shots/vimal.png",
+  "head-shots": "/head-shots/vimal.webp",
   "Maternity": "/Maternity/R3K00089.webp", 
   "jpeg": "/jpeg/02.webp"
 };
