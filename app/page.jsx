@@ -62,26 +62,169 @@ const categories = collectionOrder
     cover: customCovers[key] || `/${key}/${galleryData[key][0]}`
   }));
 
-function FullImage({ src, alt, style = {} }) {
+function FullImage({ src, alt, style = {}, onClick }) {
+  const [loaded, setLoaded] = useState(false);
   return (
-    <div style={{
-      width: "100%",
-      marginBottom: "24px",
-      borderRadius: "4px",
-      overflow: "hidden",
-      backgroundColor: "#f5f5f3",
-      ...style
-    }}>
+    <div
+      onClick={onClick}
+      style={{
+        width: "100%",
+        marginBottom: "24px",
+        borderRadius: "4px",
+        overflow: "hidden",
+        backgroundColor: "#f5f5f3",
+        cursor: onClick ? "zoom-in" : "default",
+        position: "relative",
+        ...style
+      }}
+    >
+      {!loaded && (
+        <div style={{
+          width: "100%",
+          minHeight: "300px",
+          background: "linear-gradient(90deg, #f0f0ee 25%, #e8e8e5 50%, #f0f0ee 75%)",
+          backgroundSize: "200% 100%",
+          animation: "shimmer 1.5s ease-in-out infinite"
+        }} />
+      )}
       <img
         src={src}
         alt={alt}
+        onLoad={() => setLoaded(true)}
         style={{
           width: "100%",
           height: "auto",
           display: "block",
-          objectFit: "contain"
+          objectFit: "contain",
+          opacity: loaded ? 1 : 0,
+          transition: "opacity 0.6s ease"
         }}
       />
+    </div>
+  );
+}
+
+function Lightbox({ images, currentIndex, onClose, onNavigate }) {
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") onNavigate(1);
+      if (e.key === "ArrowLeft") onNavigate(-1);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, onNavigate]);
+
+  useEffect(() => {
+    setImgLoaded(false);
+  }, [currentIndex]);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        backgroundColor: "rgba(0,0,0,0.92)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        animation: "fadeIn 0.3s ease",
+        cursor: "zoom-out"
+      }}
+    >
+      {/* Close */}
+      <button
+        onClick={onClose}
+        aria-label="Close lightbox"
+        style={{
+          position: "absolute", top: "1.5rem", right: "1.5rem",
+          background: "none", border: "none", color: "#fff", fontSize: "28px",
+          cursor: "pointer", zIndex: 10001, opacity: 0.7,
+          width: "48px", height: "48px", display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "opacity 0.2s ease"
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+        onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
+      >
+        ✕
+      </button>
+
+      {/* Previous */}
+      {images.length > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNavigate(-1); }}
+          aria-label="Previous photo"
+          style={{
+            position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)",
+            background: "rgba(255,255,255,0.08)", border: "none", color: "#fff",
+            width: "48px", height: "48px", borderRadius: "50%",
+            cursor: "pointer", fontSize: "22px", zIndex: 10001,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            backdropFilter: "blur(4px)", transition: "background 0.2s ease"
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+          onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
+        >
+          ‹
+        </button>
+      )}
+
+      {/* Image */}
+      <div onClick={(e) => e.stopPropagation()} style={{ cursor: "default", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", maxWidth: "90vw", maxHeight: "85vh" }}>
+        {!imgLoaded && (
+          <div style={{
+            width: "48px", height: "48px",
+            border: "2px solid rgba(255,255,255,0.15)",
+            borderTopColor: "#fff",
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite",
+            position: "absolute"
+          }} />
+        )}
+        <img
+          src={images[currentIndex]}
+          alt={`Photo ${currentIndex + 1}`}
+          onLoad={() => setImgLoaded(true)}
+          style={{
+            maxWidth: "90vw", maxHeight: "85vh", objectFit: "contain",
+            opacity: imgLoaded ? 1 : 0, transition: "opacity 0.4s ease",
+            borderRadius: "2px"
+          }}
+        />
+      </div>
+
+      {/* Next */}
+      {images.length > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNavigate(1); }}
+          aria-label="Next photo"
+          style={{
+            position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)",
+            background: "rgba(255,255,255,0.08)", border: "none", color: "#fff",
+            width: "48px", height: "48px", borderRadius: "50%",
+            cursor: "pointer", fontSize: "22px", zIndex: 10001,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            backdropFilter: "blur(4px)", transition: "background 0.2s ease"
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+          onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
+        >
+          ›
+        </button>
+      )}
+
+      {/* Counter */}
+      <div style={{
+        position: "absolute", bottom: "1.5rem", left: "50%", transform: "translateX(-50%)",
+        color: "rgba(255,255,255,0.5)", fontSize: "13px", letterSpacing: "0.15em",
+        fontFamily: "'DM Sans', sans-serif"
+      }}>
+        {currentIndex + 1} / {images.length}
+      </div>
     </div>
   );
 }
@@ -144,6 +287,7 @@ function AlbumCard({ cat, onClick }) {
 export default function Portfolio() {
   const [currentView, setCurrentView] = useState("home");
   const [scrolled, setScrolled] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
 
   useEffect(() => {
@@ -153,10 +297,22 @@ export default function Portfolio() {
   }, []);
 
   useEffect(() => {
+    setLightboxIndex(null);
     if (currentView !== "home") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [currentView]);
+
+  const currentImages = currentView !== "home"
+    ? (galleryData[currentView] || []).map(img => `/${currentView}/${img}`)
+    : [];
+
+  const handleLightboxNavigate = (direction) => {
+    setLightboxIndex(prev => {
+      const len = currentImages.length;
+      return (prev + direction + len) % len;
+    });
+  };
 
   return (
     <div style={{ backgroundColor: "#fafaf8", color: "#1a1a18", minHeight: "100vh" }}>
@@ -201,6 +357,17 @@ export default function Portfolio() {
           
           /* Hero image full-size override for mobile */
           .hero-img-element { position: relative !important; height: auto !important; object-fit: contain !important; }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
 
@@ -403,9 +570,19 @@ export default function Portfolio() {
                 key={idx}
                 src={`/${currentView}/${img}`}
                 alt={`${currentView} ${idx + 1}`}
+                onClick={() => setLightboxIndex(idx)}
               />
             ))}
           </div>
+
+          {lightboxIndex !== null && currentImages.length > 0 && (
+            <Lightbox
+              images={currentImages}
+              currentIndex={lightboxIndex}
+              onClose={() => setLightboxIndex(null)}
+              onNavigate={handleLightboxNavigate}
+            />
+          )}
         </main>
       )}
 
