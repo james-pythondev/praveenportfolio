@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { galleryData } from "./galleryData";
 
 // Native SVG Icons to avoid bundle bloat
@@ -61,6 +61,235 @@ const categories = collectionOrder
     label: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1).replace(/-/g, ' '),
     cover: customCovers[key] || `/${key}/${galleryData[key][0]}`
   }));
+
+/* ─── Interactive Hero Canvas ─── */
+function InteractiveHeroCanvas() {
+  const canvasRef = useRef(null);
+  const mouseRef = useRef({ x: -1000, y: -1000 });
+  const particlesRef = useRef([]);
+  const animFrameRef = useRef(null);
+  const timeRef = useRef(0);
+
+  const createParticles = useCallback((w, h) => {
+    const particles = [];
+    const count = Math.min(Math.floor((w * h) / 18000), 60);
+    for (let i = 0; i < count; i++) {
+      const type = Math.random();
+      particles.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        baseX: Math.random() * w,
+        baseY: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        size: type < 0.3 ? Math.random() * 3 + 1 : (type < 0.6 ? Math.random() * 18 + 8 : Math.random() * 40 + 20),
+        opacity: Math.random() * 0.15 + 0.03,
+        baseOpacity: Math.random() * 0.15 + 0.03,
+        type: type < 0.3 ? "dot" : (type < 0.5 ? "ring" : (type < 0.7 ? "line" : (type < 0.85 ? "aperture" : "cross"))),
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.008,
+        phase: Math.random() * Math.PI * 2,
+        driftRadius: Math.random() * 30 + 10,
+      });
+    }
+    return particles;
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let w, h;
+
+    const resize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      w = rect.width;
+      h = rect.height;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      particlesRef.current = createParticles(w, h);
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    const onMouseMove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
+    const onMouseLeave = () => {
+      mouseRef.current = { x: -1000, y: -1000 };
+    };
+    canvas.addEventListener("mousemove", onMouseMove);
+    canvas.addEventListener("mouseleave", onMouseLeave);
+
+    const drawAperture = (ctx, x, y, size, rotation) => {
+      const blades = 6;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      for (let i = 0; i < blades; i++) {
+        const angle = (i / blades) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(Math.cos(angle) * size * 0.4, Math.sin(angle) * size * 0.4, size * 0.5, angle - 0.5, angle + 0.5);
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
+
+    const drawCross = (ctx, x, y, size, rotation) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      ctx.beginPath();
+      ctx.moveTo(-size, 0);
+      ctx.lineTo(size, 0);
+      ctx.moveTo(0, -size);
+      ctx.lineTo(0, size);
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    const animate = () => {
+      timeRef.current += 0.008;
+      const t = timeRef.current;
+      ctx.clearRect(0, 0, w, h);
+
+      // Subtle animated gradient background
+      const g = ctx.createRadialGradient(
+        w * 0.5 + Math.sin(t * 0.3) * w * 0.15,
+        h * 0.5 + Math.cos(t * 0.4) * h * 0.15,
+        0,
+        w * 0.5, h * 0.5, w * 0.8
+      );
+      g.addColorStop(0, "rgba(240, 235, 225, 0.5)");
+      g.addColorStop(0.5, "rgba(245, 240, 232, 0.2)");
+      g.addColorStop(1, "rgba(250, 250, 248, 0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
+
+      particlesRef.current.forEach((p) => {
+        // Organic drift
+        p.x = p.baseX + Math.sin(t + p.phase) * p.driftRadius;
+        p.y = p.baseY + Math.cos(t * 0.7 + p.phase) * p.driftRadius;
+
+        // Base movement
+        p.baseX += p.vx;
+        p.baseY += p.vy;
+
+        // Wrap around
+        if (p.baseX < -50) p.baseX = w + 50;
+        if (p.baseX > w + 50) p.baseX = -50;
+        if (p.baseY < -50) p.baseY = h + 50;
+        if (p.baseY > h + 50) p.baseY = -50;
+
+        p.rotation += p.rotationSpeed;
+
+        // Mouse interaction — magnetic glow and push
+        const dx = p.x - mx;
+        const dy = p.y - my;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const interactionRadius = 200;
+        let pushX = 0, pushY = 0;
+        let glowBoost = 0;
+
+        if (dist < interactionRadius && mx > 0) {
+          const force = (1 - dist / interactionRadius);
+          pushX = (dx / dist) * force * 40;
+          pushY = (dy / dist) * force * 40;
+          glowBoost = force * 0.35;
+        }
+
+        const drawX = p.x + pushX;
+        const drawY = p.y + pushY;
+        const finalOpacity = Math.min(p.baseOpacity + glowBoost, 0.6);
+
+        ctx.strokeStyle = `rgba(26, 26, 24, ${finalOpacity})`;
+        ctx.fillStyle = `rgba(26, 26, 24, ${finalOpacity})`;
+        ctx.lineWidth = 0.5;
+
+        if (p.type === "dot") {
+          ctx.beginPath();
+          ctx.arc(drawX, drawY, p.size + glowBoost * 2, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p.type === "ring") {
+          ctx.beginPath();
+          ctx.arc(drawX, drawY, p.size, 0, Math.PI * 2);
+          ctx.stroke();
+          if (glowBoost > 0.1) {
+            ctx.strokeStyle = `rgba(26, 26, 24, ${glowBoost * 0.3})`;
+            ctx.beginPath();
+            ctx.arc(drawX, drawY, p.size + 4, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        } else if (p.type === "line") {
+          ctx.save();
+          ctx.translate(drawX, drawY);
+          ctx.rotate(p.rotation);
+          ctx.beginPath();
+          ctx.moveTo(-p.size / 2, 0);
+          ctx.lineTo(p.size / 2, 0);
+          ctx.stroke();
+          ctx.restore();
+        } else if (p.type === "aperture") {
+          drawAperture(ctx, drawX, drawY, p.size * 0.4, p.rotation);
+        } else if (p.type === "cross") {
+          drawCross(ctx, drawX, drawY, p.size * 0.3, p.rotation);
+        }
+      });
+
+      // Connection lines between nearby particles
+      const pts = particlesRef.current;
+      for (let i = 0; i < pts.length; i++) {
+        for (let j = i + 1; j < pts.length; j++) {
+          const dx = pts[i].x - pts[j].x;
+          const dy = pts[i].y - pts[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 150) {
+            const alpha = (1 - dist / 150) * 0.04;
+            ctx.strokeStyle = `rgba(26, 26, 24, ${alpha})`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x, pts[i].y);
+            ctx.lineTo(pts[j].x, pts[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      animFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animFrameRef.current);
+      window.removeEventListener("resize", resize);
+      canvas.removeEventListener("mousemove", onMouseMove);
+      canvas.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, [createParticles]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "auto",
+      }}
+    />
+  );
+}
 
 function FullImage({ src, alt, style = {}, onClick }) {
   const [loaded, setLoaded] = useState(false);
@@ -284,11 +513,63 @@ function AlbumCard({ cat, onClick }) {
   );
 }
 
+/* ─── Animated Counter ─── */
+function AnimatedCounter({ end, suffix = "", duration = 2000, isVisible }) {
+  const [count, setCount] = useState(0);
+  const countRef = useRef(null);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    let startTime = null;
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * end));
+      if (progress < 1) {
+        countRef.current = requestAnimationFrame(animate);
+      }
+    };
+    countRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(countRef.current);
+  }, [isVisible, end, duration]);
+
+  return <span>{count}{suffix}</span>;
+}
+
+/* ─── Scroll-triggered visibility hook ─── */
+function useScrollVisible(threshold = 0.2) {
+  const ref = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
+      { threshold }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [threshold]);
+
+  return [ref, isVisible];
+}
+
+
 export default function Portfolio() {
   const [currentView, setCurrentView] = useState("home");
   const [scrolled, setScrolled] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [heroVisible, setHeroVisible] = useState(false);
 
+  // Scroll-triggered visibility for sections (must be at top level)
+  const [statsRef, statsVisible] = useScrollVisible(0.3);
+  const [aboutRef, aboutVisible] = useScrollVisible(0.2);
+
+  useEffect(() => {
+    // Staggered hero entrance animation
+    const timer = setTimeout(() => setHeroVisible(true), 150);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -322,27 +603,41 @@ export default function Portfolio() {
         body { font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
         .gallery-grid { columns: 3; column-gap: 24px; padding: 0 2rem; max-width: 1400px; margin: 0 auto; }
         
-        .hero-split { height: 100vh; width: 100%; display: flex; flex-direction: row; background-color: #fafaf8; }
-        .hero-bio { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 4rem; z-index: 2; }
-        .hero-image { flex: 1; position: relative; }
-        
         .footer-links { display: flex; gap: 3rem; margin-top: 1rem; }
         .section-padding { padding: 6rem 3rem; }
         .footer-container { padding: 5rem 3rem; }
+
+        .stats-bar { display: flex; justify-content: center; gap: 0; padding: 4rem 2rem; background: #1a1a18; }
+        .stat-item { flex: 1; max-width: 220px; text-align: center; padding: 0 2rem; position: relative; }
+        .stat-item:not(:last-child)::after { content: ''; position: absolute; right: 0; top: 15%; height: 70%; width: 1px; background: rgba(255,255,255,0.1); }
+        .stat-number { font-family: 'EB Garamond', serif; font-size: 48px; font-weight: 400; color: #fff; line-height: 1; }
+        .stat-label { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-top: 0.6rem; }
+
+        .featured-grid { display: none; }
+
+        .about-section { display: flex; align-items: center; gap: 5rem; max-width: 1200px; margin: 0 auto; }
+        .about-image-wrap { flex: 0 0 380px; height: 500px; position: relative; border-radius: 6px; overflow: hidden; }
+        .about-text-wrap { flex: 1; }
+
+        .scroll-reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .scroll-reveal.visible { opacity: 1; transform: translateY(0); }
         
         @media (max-width: 1000px) { 
           .gallery-grid { columns: 2; padding: 0 1.5rem; } 
-          .hero-split { flex-direction: column; height: auto; min-height: 100vh; padding-top: 80px; }
-          .hero-bio { padding: 4rem 2rem 4rem; order: 2; align-items: center; text-align: center; }
-          .hero-image { order: 1; height: auto; display: flex; }
           .nav-container { padding: 1.2rem 2rem !important; }
           .nav-logo { font-size: 24px !important; }
+          .hero-content { padding: 0 2rem !important; }
+          .hero-content h1 { font-size: clamp(36px, 8vw, 56px) !important; }
+          .featured-grid { grid-template-columns: repeat(2, 1fr) !important; grid-template-rows: 280px 280px 280px !important; }
+          .featured-grid > *:nth-child(1) { grid-column: 1 / 3 !important; }
+          .featured-grid > *:nth-child(2) { grid-column: auto !important; grid-row: auto !important; }
+          .featured-grid > *:nth-child(5) { grid-column: 1 / 3 !important; }
+          .about-section { flex-direction: column !important; gap: 3rem !important; text-align: center; }
+          .about-image-wrap { flex: none !important; width: 100% !important; max-width: 400px; height: 400px !important; }
+          .stat-number { font-size: 36px !important; }
         }
         @media (max-width: 600px) { 
           .gallery-grid { columns: 1; padding: 0 1rem; } 
-          .hero-bio { padding: 3rem 1.5rem 3rem; order: 2; }
-          .hero-bio p { font-size: 14px !important; }
-          .hero-image { height: auto; order: 1; margin-bottom: 1rem; }
           .nav-container { padding: 1rem 1.2rem !important; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
           .nav-logo { font-size: 20px !important; }
           .nav-links { gap: 1rem !important; }
@@ -354,9 +649,18 @@ export default function Portfolio() {
           .section-title { font-size: 32px !important; }
           .album-title { font-size: 32px !important; }
           .album-header { flex-direction: column !important; align-items: flex-start !important; gap: 1.5rem !important; }
-          
-          /* Hero image full-size override for mobile */
-          .hero-img-element { position: relative !important; height: auto !important; object-fit: contain !important; }
+          .hero-content { padding: 0 1.5rem !important; }
+          .hero-content p { font-size: 14px !important; }
+          .hero-buttons { flex-direction: column !important; align-items: stretch !important; }
+          .hero-buttons a, .hero-buttons button { text-align: center; justify-content: center; }
+          .stats-bar { flex-wrap: wrap !important; gap: 2rem !important; padding: 3rem 1.5rem !important; }
+          .stat-item { flex: 0 0 40% !important; padding: 0 !important; }
+          .stat-item::after { display: none !important; }
+          .stat-number { font-size: 32px !important; }
+          .featured-grid { grid-template-columns: 1fr !important; grid-template-rows: auto !important; }
+          .featured-grid > * { grid-column: auto !important; grid-row: auto !important; min-height: 250px !important; }
+          .about-image-wrap { height: 350px !important; }
+          .about-section { gap: 2rem !important; }
         }
         @keyframes shimmer {
           0% { background-position: -200% 0; }
@@ -368,6 +672,18 @@ export default function Portfolio() {
         }
         @keyframes spin {
           to { transform: rotate(360deg); }
+        }
+        @keyframes heroFadeUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scrollPulse {
+          0%, 100% { opacity: 0.4; transform: translateX(-50%) translateY(0); }
+          50% { opacity: 0.8; transform: translateX(-50%) translateY(6px); }
+        }
+        @keyframes subtlePan {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
         }
       `}</style>
 
@@ -386,7 +702,7 @@ export default function Portfolio() {
         backdropFilter: scrolled || currentView !== "home" ? "blur(10px)" : "none",
         borderBottom: scrolled || currentView !== "home" ? "0.5px solid #eaeae5" : "none",
         transition: "all 0.5s ease",
-        color: "#1a1a18" // changed to always dark since left side is white now
+        color: "#1a1a18"
       }}>
         <div style={{ cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => setCurrentView("home")}>
           <span className="nav-logo" style={{ fontFamily: "'EB Garamond', serif", fontSize: "28px", letterSpacing: "0.15em", textTransform: "uppercase" }}>
@@ -426,21 +742,78 @@ export default function Portfolio() {
 
       {currentView === "home" ? (
         <>
-          {/* HERO SPLIT-SCREEN */}
-          <header className="hero-split">
-            
-            {/* LEFT SIDE: BIO */}
-            <div className="hero-bio">
-              <p style={{ letterSpacing: "0.25em", fontSize: "12px", textTransform: "uppercase", marginBottom: "1.5rem", color: "#888" }}>
+          {/* INTERACTIVE HERO */}
+          <header style={{
+            height: "100vh",
+            width: "100%",
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
+            backgroundColor: "#fafaf8",
+          }}>
+            {/* Canvas background */}
+            <InteractiveHeroCanvas />
+
+            {/* Center content overlay */}
+            <div
+              className="hero-content"
+              style={{
+                position: "relative",
+                zIndex: 2,
+                textAlign: "center",
+                padding: "0 3rem",
+                maxWidth: "800px",
+              }}
+            >
+              <p style={{
+                letterSpacing: "0.3em",
+                fontSize: "11px",
+                textTransform: "uppercase",
+                marginBottom: "2rem",
+                color: "#999",
+                opacity: heroVisible ? 1 : 0,
+                transform: heroVisible ? "translateY(0)" : "translateY(20px)",
+                transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s",
+              }}>
                 Visual Storyteller · Fine Art Photography
               </p>
-              <h1 style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(42px, 6vw, 72px)", fontWeight: 400, lineHeight: 1.1, marginBottom: "1.5rem", color: "#1a1a18" }}>
-                Capturing the <br /><i>Timeless Grace</i>
+              <h1 style={{
+                fontFamily: "'EB Garamond', serif",
+                fontSize: "clamp(42px, 7vw, 80px)",
+                fontWeight: 400,
+                lineHeight: 1.08,
+                marginBottom: "1.5rem",
+                color: "#1a1a18",
+                opacity: heroVisible ? 1 : 0,
+                transform: heroVisible ? "translateY(0)" : "translateY(30px)",
+                transition: "all 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s",
+              }}>
+                Capturing the<br /><i style={{ fontWeight: 400 }}>Timeless Grace</i>
               </h1>
-              <p style={{ color: "#666", fontSize: "15px", lineHeight: 1.7, marginBottom: "2.5rem", maxWidth: "500px" }}>
-                Praveen is a fine art photographer specializing in creating elegant, cinematic imagery. By blending natural light with quiet, candid moments, he crafts visual heirlooms that authentically preserve your most profound milestones.
+              <p style={{
+                color: "#666",
+                fontSize: "15px",
+                lineHeight: 1.8,
+                marginBottom: "3rem",
+                maxWidth: "540px",
+                margin: "0 auto 3rem",
+                opacity: heroVisible ? 1 : 0,
+                transform: heroVisible ? "translateY(0)" : "translateY(20px)",
+                transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.7s",
+              }}>
+                Fine art photography specializing in elegant, cinematic imagery. Blending natural light with quiet, candid moments to craft visual heirlooms.
               </p>
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "inherit" }}>
+              <div className="hero-buttons" style={{
+                display: "flex",
+                gap: "1rem",
+                justifyContent: "center",
+                flexWrap: "wrap",
+                opacity: heroVisible ? 1 : 0,
+                transform: heroVisible ? "translateY(0)" : "translateY(20px)",
+                transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.9s",
+              }}>
                 <button 
                   onClick={() => document.getElementById('collections').scrollIntoView({ behavior: 'smooth' })}
                   style={{
@@ -454,6 +827,8 @@ export default function Portfolio() {
                     cursor: "pointer",
                     transition: "all 0.3s ease"
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#1a1a18"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "#1a1a18"; e.currentTarget.style.color = "#fff"; }}
                 >
                   Explore Albums
                 </button>
@@ -483,23 +858,117 @@ export default function Portfolio() {
               </div>
             </div>
 
-            {/* RIGHT SIDE: STATIC IMAGE */}
-            <div className="hero-image">
-              <img
-                className="hero-img-element"
-                src="/abc.jpeg"
-                alt="Praveen Photography"
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
+            {/* Scroll indicator */}
+            <div style={{
+              position: "absolute",
+              bottom: "2.5rem",
+              left: "50%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "8px",
+              animation: "scrollPulse 2.5s ease-in-out infinite",
+              opacity: heroVisible ? 1 : 0,
+              transition: "opacity 1s ease 1.4s",
+            }}>
+              <span style={{ fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#aaa" }}>
+                Scroll
+              </span>
+              <svg width="16" height="24" viewBox="0 0 16 24" fill="none" stroke="#aaa" strokeWidth="1.5">
+                <rect x="1" y="1" width="14" height="22" rx="7" />
+                <line x1="8" y1="6" x2="8" y2="10" />
+              </svg>
             </div>
-            
           </header>
+
+          {/* STATS BAR */}
+          <section ref={statsRef} className="stats-bar">
+            {[
+              { value: 5, suffix: "+", label: "Years Experience" },
+              { value: 200, suffix: "+", label: "Shoots Delivered" },
+              { value: 50, suffix: "+", label: "Weddings Covered" },
+              { value: 100, suffix: "%", label: "Happy Clients" },
+            ].map((stat, i) => (
+              <div key={i} className="stat-item" style={{
+                opacity: statsVisible ? 1 : 0,
+                transform: statsVisible ? "translateY(0)" : "translateY(15px)",
+                transition: `all 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.12}s`,
+              }}>
+                <div className="stat-number">
+                  <AnimatedCounter end={stat.value} suffix={stat.suffix} isVisible={statsVisible} />
+                </div>
+                <div className="stat-label">{stat.label}</div>
+              </div>
+            ))}
+          </section>
+
+          {/* ABOUT ME */}
+          <section ref={aboutRef} className="section-padding" style={{ backgroundColor: "#f4f3f0" }}>
+            <div className="about-section">
+              {/* Photo */}
+              <div className="about-image-wrap" style={{
+                opacity: aboutVisible ? 1 : 0,
+                transform: aboutVisible ? "translateX(0)" : "translateX(-30px)",
+                transition: "all 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s",
+              }}>
+                <img
+                  src="/abc.jpeg"
+                  alt="Praveen — Photographer"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              </div>
+              {/* Text */}
+              <div className="about-text-wrap">
+                <p style={{
+                  fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: "#999", marginBottom: "1.2rem",
+                  opacity: aboutVisible ? 1 : 0, transform: aboutVisible ? "translateY(0)" : "translateY(15px)",
+                  transition: "all 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s",
+                }}>
+                  The Photographer
+                </p>
+                <h2 style={{
+                  fontFamily: "'EB Garamond', serif", fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 400, lineHeight: 1.15, marginBottom: "1.5rem", color: "#1a1a18",
+                  opacity: aboutVisible ? 1 : 0, transform: aboutVisible ? "translateY(0)" : "translateY(20px)",
+                  transition: "all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.4s",
+                }}>
+                  Hello, I'm <i>Praveen</i>
+                </h2>
+                <div style={{
+                  opacity: aboutVisible ? 1 : 0, transform: aboutVisible ? "translateY(0)" : "translateY(15px)",
+                  transition: "all 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.55s",
+                }}>
+                  <p style={{ color: "#555", fontSize: "15px", lineHeight: 1.8, marginBottom: "1.2rem" }}>
+                    Photography found me before I found it. What started as a curiosity with borrowed cameras became a lifelong pursuit of capturing the beauty in fleeting moments — the stolen glances, the quiet tears of joy, the golden light that lasts only seconds.
+                  </p>
+                  <p style={{ color: "#555", fontSize: "15px", lineHeight: 1.8, marginBottom: "1.2rem" }}>
+                    I believe every frame should tell a story that words cannot. My approach blends fine art aesthetics with documentary honesty — I don't pose moments, I preserve them. Natural light is my favorite collaborator, and emotion is the only direction I give.
+                  </p>
+                  <p style={{ color: "#555", fontSize: "15px", lineHeight: 1.8, marginBottom: "2rem" }}>
+                    From intimate maternity portraits to grand wedding celebrations, I pour my heart into every shoot, ensuring your memories are not just documented, but truly felt.
+                  </p>
+                </div>
+                <a
+                  href="https://www.instagram.com/hypothetical__soul?igsh=eWk2anNmM3o2ZXpx"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: "10px",
+                    color: "#1a1a18", fontSize: "12px", letterSpacing: "0.15em", textTransform: "uppercase",
+                    textDecoration: "none", borderBottom: "1px solid #1a1a18", paddingBottom: "4px",
+                    transition: "all 0.3s ease",
+                    opacity: aboutVisible ? 1 : 0, transform: aboutVisible ? "translateY(0)" : "translateY(10px)",
+                    transitionDelay: "0.7s",
+                  }}
+                >
+                  Follow My Journey <span style={{ fontSize: "16px" }}>→</span>
+                </a>
+              </div>
+            </div>
+          </section>
 
           {/* COLLECTIONS GRID */}
           <section id="collections" className="section-padding" style={{ backgroundColor: "#fafaf8" }}>
